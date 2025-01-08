@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  sandbox:
+    container_name: sandbox
+    build:
+      context: .
+    ports:
+      - "3003:3000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # link to host docker socket
+      - submissions:/app/work
+
+volumes:
+  submissions:
