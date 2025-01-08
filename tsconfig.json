@@ -23,6 +23,11 @@
         "esModuleInterop": true,
         "useUnknownInCatchVariables": false,
         "types": ["@types/node"],
-        "typeRoots": ["./typings", "./node_modules", "./node_modules/@types"]
-    }
+        "paths": {
+            "@app/*": ["./src/*"]
+        }
+    },
+    "include": ["src/**/*"],
+    "exclude": ["**/node_modules/**/*", "./dist/**/*"],
+    "typeRoots": ["./typings", "./node_modules", "./node_modules/@types"]
 }

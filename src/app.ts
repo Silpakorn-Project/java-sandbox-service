@@ -2,11 +2,12 @@ import "reflect-metadata";
 
 import bodyParser from "koa-bodyparser";
 import { createKoaServer } from "routing-controllers";
-import { SubmissionController } from "./controllers";
 import { LoggerMiddleware } from "./middleware/LoggerMiddleware";
+import { HealthCheckController } from "./modules/healthcheck/HealthCheckController";
+import { SubmissionController } from "./modules/submission/SubmissionController";
 
 const app = createKoaServer({
-    controllers: [SubmissionController],
+    controllers: [SubmissionController, HealthCheckController],
     middlewares: [LoggerMiddleware, bodyParser()],
 });
 

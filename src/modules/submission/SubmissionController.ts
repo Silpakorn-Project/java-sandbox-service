@@ -1,19 +1,19 @@
+import { runTests } from "@app/sandbox";
+import { CustomContext } from "@app/types";
 import multer from "@koa/multer";
-import { Ctx, Get, JsonController, Post, UseBefore } from "routing-controllers";
-import { runTests } from "./sandbox";
-import { CustomContext } from "./types";
-import { BadRequestError } from "./utils/error";
+import {
+    BadRequestError,
+    Ctx,
+    JsonController,
+    Post,
+    UseBefore,
+} from "routing-controllers";
 
 // Singleton for now
 const upload = multer({ dest: "uploads/" });
 
-@JsonController()
+@JsonController("/api/v1/submission")
 export class SubmissionController {
-    @Get("/status")
-    async getStatus() {
-        return { message: "OK" };
-    }
-
     @Post("/submit")
     @UseBefore(upload.single("file"))
     async submit(@Ctx() ctx: CustomContext) {
