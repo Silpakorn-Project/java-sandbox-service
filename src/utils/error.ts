@@ -1,10 +1,10 @@
 class CustomError extends Error {
-  constructor(message?: string) {
-    super(message)
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, CustomError)
+    constructor(message?: string) {
+        super(message);
+        if (Error.captureStackTrace) {
+            Error.captureStackTrace(this, CustomError);
+        }
     }
-  }
 }
 
 export class NotFoundError extends CustomError {}
