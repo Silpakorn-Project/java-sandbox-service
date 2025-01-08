@@ -3,12 +3,17 @@ import "reflect-metadata";
 import bodyParser from "koa-bodyparser";
 import { createKoaServer } from "routing-controllers";
 import { LoggerMiddleware } from "./middleware/LoggerMiddleware";
+import { RequestScopeContainerMiddleware } from "./middleware/RequestScopeContainerMiddleware";
 import { HealthCheckController } from "./modules/healthcheck/HealthCheckController";
 import { SubmissionController } from "./modules/submission/SubmissionController";
 
 const app = createKoaServer({
     controllers: [SubmissionController, HealthCheckController],
-    middlewares: [LoggerMiddleware, bodyParser()],
+    middlewares: [
+        LoggerMiddleware,
+        RequestScopeContainerMiddleware,
+        bodyParser(),
+    ],
 });
 
 const port = 3000;
