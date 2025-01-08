@@ -1,30 +1,42 @@
 import multer from "@koa/multer";
-import { randomUUID } from "crypto";
-import Router from "koa-router";
+import { Ctx, Get, JsonController, Post, UseBefore } from "routing-controllers";
 import { runTests } from "./sandbox";
+import { CustomContext } from "./types";
+import { BadRequestError } from "./utils/error";
 
-export const upload = multer({ dest: "uploads/" });
+// Singleton for now
+const upload = multer({ dest: "uploads/" });
 
-export const controller = new Router();
-
-controller.get("/status", (ctx) => {
-  ctx.body = { message: "OK" };
-});
-
-controller.post("/submit", upload.single("file"), async (ctx) => {
-  const file = ctx.request.file;
-
-  if (!file) {
-    ctx.status = 400;
-    ctx.body = { message: "No file uploaded" };
-    return;
+@JsonController()
+export class SubmissionController {
+  @Get("/status")
+  async getStatus() {
+    return { message: "OK" };
   }
 
-  try {
-    await runTests(file.path, randomUUID());
-  } catch (e) {
-    // ...
-  }
+  @Post("/submit")
+  @UseBefore(upload.single("file"))
+  async submit(@Ctx() ctx: CustomContext) {
+    const file = ctx.request.file;
 
-  ctx.body = { message: `File ${file.originalname} uploaded` };
-});
+    if (!file) {
+      ctx.status = 400;
+      ctx.body = { message: "No file uploaded" };
+      return;
+    }
+
+    if (ctx.file.mimetype !== "application/x-tar") {
+      throw new BadRequestError(
+        `Uploaded file type is not supported! Mimetype was: ${ctx.file.mimetype}}. Supported types are application/x-tar and application/zstd.`
+      );
+    }
+
+    try {
+      await runTests(file.path, ctx.requestId, ctx.log);
+    } catch (e) {
+      // ...
+    }
+
+    return { message: `File ${file.originalname} uploaded` };
+  }
+}
