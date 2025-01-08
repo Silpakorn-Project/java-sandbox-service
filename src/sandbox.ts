@@ -10,8 +10,8 @@ const exec = promisify(origExec);
 const unlink = promisify(origUnlink);
 
 // FIXME: hardcode volume
-const VOLUME_NAME = "submissions";
-const IMAGE = "maven:3-openjdk-11";
+const VOLUME_NAME = process.env.VOLUME_NAME || "submissions";
+const IMAGE = process.env.IMAGE || "maven:3-openjdk-11";
 
 export async function runTests(path: string, id: string, log: winston.Logger) {
     const containerName = `submission-${id}`;
@@ -26,10 +26,9 @@ export async function runTests(path: string, id: string, log: winston.Logger) {
                 ? `${resolve(outputPath)}:/app`
                 : `${VOLUME_NAME}:/app`;
 
-        const command = `docker run --name ${containerName} --workdir /app
-        --volume ${volume} ${IMAGE} mvn -f 
-        /app${process.env.NODE_ENV === "development" ? "" : `/${id}`}
-        /pom.xml test`;
+        const command = `docker run --name ${containerName} --workdir /app --volume ${volume} ${IMAGE} mvn -f /app${
+            process.env.NODE_ENV === "development" ? "" : `/${id}`
+        }/pom.xml test`;
 
         log.info(`Running tests with '${command}'`);
         const { stdout: testResults } = await exec(command);
