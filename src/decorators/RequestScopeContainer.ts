@@ -1,13 +1,12 @@
 import { createParamDecorator } from "routing-controllers";
+import Container from "typedi";
+import * as uuid from "uuid";
 
 export function RequestScopeContainer() {
     return createParamDecorator({
         value: (action) => {
-            const container = action.context.state.container;
-            if (!container) {
-                throw new Error("Request-scoped container not found");
-            }
-            return container;
+            const requestId = action.request.headers["x-request-id"] ?? uuid.v4;
+            return Container.of(requestId);
         },
     });
 }
