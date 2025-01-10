@@ -14,7 +14,7 @@ const upload = multer({ dest: "uploads/" });
 export class SubmissionController {
     @Post("/submit")
     @UseBefore(upload.single("file"))
-    async submit(
+    public async submit(
         @Ctx() ctx: CustomContext,
         @RequestScopeContainer() container: ContainerInstance,
     ) {

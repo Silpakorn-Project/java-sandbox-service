@@ -10,7 +10,6 @@ export const extract = (
             tar.extract(outputPath),
         );
         extractStream.on("finish", () => {
-            console.log("finished");
             resolve();
         });
         extractStream.on("error", (reason) => {
