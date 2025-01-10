@@ -20,7 +20,10 @@ export class SubmissionController {
     ) {
         try {
             const submissionService = container.get(SubmissionService);
-            await submissionService.submit(ctx.request.file, ctx.requestId);
+            return await submissionService.submit(
+                ctx.request.file,
+                ctx.requestId,
+            );
         } catch (error) {
             if (error instanceof FileError) {
                 throw new BadRequestError(error.message);
@@ -28,7 +31,5 @@ export class SubmissionController {
 
             throw new InternalServerError();
         }
-
-        return { message: `ok` };
     }
 }
