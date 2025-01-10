@@ -3,17 +3,17 @@ import { KoaMiddlewareInterface, Middleware } from "routing-controllers";
 import { Container } from "typedi";
 
 @Middleware({ type: "before" })
-export class RequestScopeContainerMiddleware implements KoaMiddlewareInterface {
+export class RequestScopeContainerLifeCycleMiddleware implements KoaMiddlewareInterface {
     async use(ctx: CustomContext, next: Function): Promise<void> {
-        const requestId = ctx.headers["x-request-id"] || "default";
-        const container = Container.of(requestId as string);
+        const requestId = ctx.requestId
+        const container = Container.of(requestId);
 
         ctx.state.container = container;
 
         try {
             await next();
         } finally {
-            Container.reset(requestId as string);
+            Container.reset(requestId);
         }
     }
 }

@@ -1,7 +1,6 @@
 import { Next } from "koa";
 import { KoaMiddlewareInterface, Middleware } from "routing-controllers";
 import { CustomContext } from "src/types";
-import * as uuid from "uuid";
 import { createLogger, format, transports } from "winston";
 
 const myFormat = format.printf(
@@ -29,7 +28,7 @@ export class LoggerMiddleware implements KoaMiddlewareInterface {
     async use(ctx: CustomContext, next: Next): Promise<void> {
         const start = Date.now();
         ctx.state.start = start;
-        const requestId = uuid.v4();
+        const requestId = ctx.requestId;
         const log = GlobalLogger.child({ requestId });
         ctx.log = log;
         ctx.requestId = requestId;
