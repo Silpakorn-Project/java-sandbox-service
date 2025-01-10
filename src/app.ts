@@ -1,22 +1,26 @@
+import * as DotEnv from "dotenv";
 import "reflect-metadata";
 
 import bodyParser from "koa-bodyparser";
 import { createKoaServer } from "routing-controllers";
 import { LoggerMiddleware } from "./middleware/LoggerMiddleware";
-import { RequestScopeContainerMiddleware } from "./middleware/RequestScopeContainerMiddleware";
+import { RequestScopeContainerLifeCycleMiddleware } from "./middleware/RequestScopeContainerMiddleware";
 import { HealthCheckController } from "./modules/healthcheck/HealthCheckController";
 import { SubmissionController } from "./modules/submission/SubmissionController";
 
 const app = createKoaServer({
+    defaultErrorHandler: false,
     controllers: [SubmissionController, HealthCheckController],
     middlewares: [
         LoggerMiddleware,
-        RequestScopeContainerMiddleware,
+        RequestScopeContainerLifeCycleMiddleware,
         bodyParser(),
     ],
 });
 
-const port = 3000;
+DotEnv.config();
+
+const port = process.env.PORT || 3000;
 
 app.listen(port, () => {
     const modeMessage =
