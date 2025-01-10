@@ -1,4 +1,5 @@
-import { GlobalLogger } from "@app/utils/logger";
+import { Logger } from "@app/utils/log";
+import { WinstonLogger } from "@app/utils/log/WinstonLogger";
 import { Next } from "koa";
 import { KoaMiddlewareInterface, Middleware } from "routing-controllers";
 import { CustomContext } from "src/types";
@@ -10,8 +11,8 @@ export class LoggerMiddleware implements KoaMiddlewareInterface {
         const start = Date.now();
         ctx.state.start = start;
         const requestId = ctx.requestId;
-        const log = GlobalLogger.child({ requestId });
-        Container.of(ctx.requestId).set("Logger", log);
+        const log = new WinstonLogger({ requestId });
+        Container.of(requestId).set(Logger, log);
 
         log.info(`${ctx.request.method} ${ctx.req.url}`, {
             ip: ctx.request.ip,
@@ -22,12 +23,9 @@ export class LoggerMiddleware implements KoaMiddlewareInterface {
             await next();
         } catch (e) {
             const ms = Date.now() - start;
-            log.error(
-                `Crashed ${ctx.request.method} ${ctx.req.url} in ${ms}ms`,
-                {
-                    error: e.message,
-                },
-            );
+            log.error(`${ctx.request.method} ${ctx.req.url} in ${ms}ms`, {
+                error: e.message,
+            });
             throw e;
         }
 
