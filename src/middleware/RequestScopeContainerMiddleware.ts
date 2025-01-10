@@ -6,9 +6,7 @@ import { Container } from "typedi";
 export class RequestScopeContainerLifeCycleMiddleware implements KoaMiddlewareInterface {
     async use(ctx: CustomContext, next: Function): Promise<void> {
         const requestId = ctx.requestId
-        const container = Container.of(requestId);
-
-        ctx.state.container = container;
+        Container.of(requestId);
 
         try {
             await next();
