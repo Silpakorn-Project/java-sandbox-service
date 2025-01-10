@@ -20,7 +20,7 @@ export class SubmissionService {
         }
 
         try {
-            await this._sandboxDomainService.runTests(file.path, requestId);
+            return await this._sandboxDomainService.runTests(file.path, requestId);
         } catch (e) {
             throw e;
         }

@@ -34,7 +34,7 @@ export class SandboxDomainService {
             await exec(`chmod -R 777 ${outputPath}`);
 
             const { volume, path } = this.getVolumeAndPath(id);
-            
+
             const command = [
                 `docker run`,
                 `--name ${containerName}`,
@@ -91,12 +91,19 @@ export class SandboxDomainService {
             ].join(" ");
 
             this._logger.info(`Running tests with '${command}'`);
-            const { stdout: testResults } = await exec(command);
+            await exec(command);
 
-            return { testResults };
-        } catch (e) {
-            console.error(e);
-            throw e;
+            return { message: "Tests passed" };
+        } catch (error) {
+            if (error.stdout || error.stderr) {
+                const stdout = error.stdout.trim() ?? null;
+                const stderr = error.stderr.trim() ?? null;
+
+                return { stdout, stderr };
+            }
+
+            console.error(error);
+            throw error;
         } finally {
             setImmediate(async () => {
                 try {
