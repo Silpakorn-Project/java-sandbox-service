@@ -9,12 +9,13 @@ import {
     RequestIdGeneratorMiddleware,
     RequestScopeContainerLifeCycleMiddleware,
 } from "./middleware";
+import { CodeExecutionController } from "./modules/code-execution/CodeExecutionController";
 import { HealthCheckController } from "./modules/healthcheck/HealthCheckController";
 import { SubmissionController } from "./modules/submission/SubmissionController";
 
 const app = createKoaServer({
     defaultErrorHandler: false,
-    controllers: [SubmissionController, HealthCheckController],
+    controllers: [SubmissionController, HealthCheckController, CodeExecutionController],
     middlewares: [
         RequestIdGeneratorMiddleware,
         ErrorHandlerMiddleware,
