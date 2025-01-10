@@ -33,19 +33,14 @@ export class SandboxDomainService {
             await writeFile(sourceFilePath, sourceCode);
             await exec(`chmod -R 777 ${outputPath}`);
 
-            const volume =
-                process.env.NODE_ENV === "development"
-                    ? `${resolve(outputPath)}:/app`
-                    : `${this.VOLUME_NAME}:/app`;
-
-            const path = process.env.NODE_ENV === "development" ? "" : `/${id}`;
-
+            const { volume, path } = this.getVolumeAndPath(id);
+            
             const command = [
                 `docker run`,
                 `--name ${containerName}`,
                 `--workdir /app${path}`,
                 `--volume ${volume}`,
-                `openjdk:11`,
+                `${this.IMAGE}`,
                 `sh -c`,
                 `"javac Main.java && java Main"`,
             ].join(" ");
@@ -62,24 +57,17 @@ export class SandboxDomainService {
                 return { stdout, stderr };
             }
 
-            console.error(`Error running code for ${id}`, error);
+            console.error(error);
             throw error;
         } finally {
             setImmediate(async () => {
                 try {
                     await exec(`rm -rf '${outputPath}'`);
+                    this.cleanUp;
                 } catch (e) {
                     this._logger.error(`Could not clean up ${id}`, e);
                 }
             });
-            this._logger.info(`Removing the container '${containerName}'`);
-            const removeCommand = `docker rm -f ${containerName}`;
-            await exec(removeCommand).catch((e) =>
-                this._logger.error(
-                    `Could not remove container ${containerName}`,
-                    e,
-                ),
-            );
         }
     }
 
@@ -91,12 +79,7 @@ export class SandboxDomainService {
         try {
             await exec(`chmod -R 777 ${outputPath}`);
 
-            const volume =
-                process.env.NODE_ENV === "development"
-                    ? `${resolve(outputPath)}:/app`
-                    : `${this.VOLUME_NAME}:/app`;
-
-            const path = process.env.NODE_ENV === "development" ? "" : `/${id}`;
+            const { volume, path } = this.getVolumeAndPath(id);
 
             const command = [
                 `docker run`,
@@ -110,7 +93,7 @@ export class SandboxDomainService {
             this._logger.info(`Running tests with '${command}'`);
             const { stdout: testResults } = await exec(command);
 
-            console.log("Test Results:\n", testResults);
+            return { testResults };
         } catch (e) {
             console.error(e);
             throw e;
@@ -119,19 +102,30 @@ export class SandboxDomainService {
                 try {
                     await unlink(path);
                     await exec(`rm -rf '${outputPath}'`);
+                    this.cleanUp(containerName);
                 } catch (e) {
                     this._logger.error(`Could not clean up ${id}.`, e);
                 }
             });
-
-            this._logger.info(`Removing the container '${containerName}'`);
-            const removeCommand = `docker rm -f ${containerName}`;
-            await exec(removeCommand).catch((e) =>
-                this._logger.error(
-                    `Could not remove container ${containerName}`,
-                    e,
-                ),
-            );
         }
+    }
+
+    private async cleanUp(containerName: string) {
+        this._logger.info(`Removing the container '${containerName}'`);
+        const removeCommand = `docker rm -f ${containerName}`;
+        await exec(removeCommand);
+    }
+
+    private getVolumeAndPath(id: string) {
+        const outputPath = join("work", id);
+
+        const volume =
+            process.env.NODE_ENV === "development"
+                ? `${resolve(outputPath)}:/app`
+                : `${this.VOLUME_NAME}:/app`;
+
+        const path = process.env.NODE_ENV === "development" ? "" : `/${id}`;
+
+        return { volume, path };
     }
 }
