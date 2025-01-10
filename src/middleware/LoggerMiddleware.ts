@@ -11,10 +11,10 @@ export class LoggerMiddleware implements KoaMiddlewareInterface {
         const start = Date.now();
         ctx.state.start = start;
         const requestId = ctx.requestId;
-        const log = new WinstonLogger({ requestId });
-        Container.of(requestId).set(Logger, log);
+        const logger = new WinstonLogger({ requestId });
+        Container.of(requestId).set(Logger, logger);
 
-        log.info(`${ctx.request.method} ${ctx.req.url}`, {
+        logger.info(`${ctx.request.method} ${ctx.req.url}`, {
             ip: ctx.request.ip,
             origin: ctx.request.origin,
         });
@@ -23,14 +23,14 @@ export class LoggerMiddleware implements KoaMiddlewareInterface {
             await next();
         } catch (e) {
             const ms = Date.now() - start;
-            log.error(`${ctx.request.method} ${ctx.req.url} in ${ms}ms`, {
+            logger.error(`${ctx.request.method} ${ctx.req.url} in ${ms}ms`, {
                 error: e.message,
             });
             throw e;
         }
 
         const ms = Date.now() - start;
-        log.info(
+        logger.info(
             `Completed ${ctx.request.method} ${ctx.req.url} ${ctx.response.status} in ${ms}ms`,
         );
     }

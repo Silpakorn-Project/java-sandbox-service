@@ -7,6 +7,14 @@ export class WinstonLogger implements ILogger {
     private logger: winston.Logger;
     private requestId: string;
 
+    private formatter = format.printf(
+        ({ level, message, timestamp, requestId, ...metadata }) => {
+            return `${timestamp} [${
+                requestId || "00000000-0000-0000-0000-000000000000"
+            }] ${level}: ${message}, ${JSON.stringify(metadata)}`;
+        },
+    );
+
     constructor({ requestId }: { requestId?: string } = {}) {
         this.requestId = requestId;
         this.logger = createLogger({
@@ -16,7 +24,7 @@ export class WinstonLogger implements ILogger {
                     format: "YYYY-MM-DD HH:mm:ss",
                 }),
                 format.colorize(),
-                myFormat,
+                this.formatter,
             ),
             transports: [new transports.Console()],
         });
@@ -42,16 +50,8 @@ export class WinstonLogger implements ILogger {
         if (this.logger) {
             this.logger.log(level, message, {
                 requestId: this.requestId,
-                ...args,
+                ...Object.assign({}, ...args),
             });
         }
     }
 }
-
-const myFormat = format.printf(
-    ({ level, message, timestamp, requestId, ...metadata }) => {
-        return `${timestamp} [${
-            requestId || "00000000-0000-0000-0000-000000000000"
-        }] ${level}: ${message}, ${JSON.stringify(metadata)}`;
-    },
-);
