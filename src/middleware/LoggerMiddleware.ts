@@ -1,27 +1,8 @@
+import { GlobalLogger } from "@app/utils/logger";
 import { Next } from "koa";
 import { KoaMiddlewareInterface, Middleware } from "routing-controllers";
 import { CustomContext } from "src/types";
-import { createLogger, format, transports } from "winston";
-
-const myFormat = format.printf(
-    ({ level, message, timestamp, requestId, ...metadata }) => {
-        return `${timestamp} [${
-            requestId || "00000000-0000-0000-0000-000000000000"
-        }] ${level}: ${message}, ${JSON.stringify(metadata)}`;
-    },
-);
-
-export const GlobalLogger = createLogger({
-    level: "info",
-    format: format.combine(
-        format.timestamp({
-            format: "YYYY-MM-DD HH:mm:ss",
-        }),
-        format.colorize(),
-        myFormat,
-    ),
-    transports: [new transports.Console()],
-});
+import Container from "typedi";
 
 @Middleware({ type: "before" })
 export class LoggerMiddleware implements KoaMiddlewareInterface {
@@ -30,8 +11,8 @@ export class LoggerMiddleware implements KoaMiddlewareInterface {
         ctx.state.start = start;
         const requestId = ctx.requestId;
         const log = GlobalLogger.child({ requestId });
-        ctx.log = log;
-        ctx.requestId = requestId;
+        Container.of(ctx.requestId).set("Logger", log);
+
         log.info(`${ctx.request.method} ${ctx.req.url}`, {
             ip: ctx.request.ip,
             origin: ctx.request.origin,

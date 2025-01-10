@@ -16,9 +16,9 @@ const app = createKoaServer({
     defaultErrorHandler: false,
     controllers: [SubmissionController, HealthCheckController],
     middlewares: [
-        LoggerMiddleware,
-        ErrorHandlerMiddleware,
         RequestIdGeneratorMiddleware,
+        ErrorHandlerMiddleware,
+        LoggerMiddleware,
         RequestScopeContainerLifeCycleMiddleware,
         bodyParser(),
     ],
