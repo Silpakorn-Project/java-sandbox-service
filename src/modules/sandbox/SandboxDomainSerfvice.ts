@@ -23,23 +23,24 @@ export class SandboxDomainService {
     @Inject(Logger)
     private _logger: ILogger;
 
-    public async runCode(sourceCode: string, id: string) {
-        const containerName = `submission-${id}`;
-        const outputPath = join("work", id);
-        const sourceFilePath = join(outputPath, "Main.java");
+    public async runCode(sourceCode: string, requestId: string) {
+        const containerName = `submission-${requestId}`;
+        const outputPath = join("work", requestId);
+        const sourceCodeFilePath = join(outputPath, "Main.java");
 
         try {
             await exec(`mkdir -p ${outputPath}`);
-            await writeFile(sourceFilePath, sourceCode);
+            await writeFile(sourceCodeFilePath, sourceCode);
             await exec(`chmod -R 777 ${outputPath}`);
 
-            const { volume, path } = this.getVolumeAndPath(id);
+            const { volumeMapping, containerWorkdirPath } =
+                this.getVolumeAndPath(requestId, outputPath);
 
             const command = [
                 `docker run`,
                 `--name ${containerName}`,
-                `--workdir /app${path}`,
-                `--volume ${volume}`,
+                `--workdir ${containerWorkdirPath}`,
+                `--volume ${volumeMapping}`,
                 `${this.IMAGE}`,
                 `sh -c`,
                 `"javac Main.java && java Main"`,
@@ -50,12 +51,6 @@ export class SandboxDomainService {
 
             return { stdout, stderr };
         } catch (error) {
-            if (error.stdout || error.stderr) {
-                const stdout = error.stdout.trim() ?? null;
-                const stderr = error.stderr.trim() ?? null;
-
-                return { stdout, stderr };
-            }
 
             console.error(error);
             throw error;
@@ -63,31 +58,32 @@ export class SandboxDomainService {
             setImmediate(async () => {
                 try {
                     await exec(`rm -rf '${outputPath}'`);
-                    this.cleanUp;
+                    this.cleanUp(containerName);
                 } catch (e) {
-                    this._logger.error(`Could not clean up ${id}`, e);
+                    this._logger.error(`Could not clean up ${requestId}`, e);
                 }
             });
         }
     }
 
-    public async runTests(path: string, id: string) {
-        const containerName = `submission-${id}`;
-        const outputPath = join("work", id);
-        await extract(path, outputPath);
+    public async runTests(filePath: string, requestId: string) {
+        const containerName = `submission-${requestId}`;
+        const outputPath = join("work", requestId);
+        await extract(filePath, outputPath);
 
         try {
             await exec(`chmod -R 777 ${outputPath}`);
 
-            const { volume, path } = this.getVolumeAndPath(id);
+            const { volumeMapping, containerWorkdirPath } =
+                this.getVolumeAndPath(requestId, outputPath);
 
             const command = [
                 `docker run`,
                 `--name ${containerName}`,
-                `--workdir /app`,
-                `--volume ${volume}`,
+                `--workdir ${containerWorkdirPath}`,
+                `--volume ${volumeMapping}`,
                 `${this.IMAGE}`,
-                `mvn -f /app${path}/pom.xml test`,
+                `mvn -f ./pom.xml test`,
             ].join(" ");
 
             this._logger.info(`Running tests with '${command}'`);
@@ -107,11 +103,11 @@ export class SandboxDomainService {
         } finally {
             setImmediate(async () => {
                 try {
-                    await unlink(path);
+                    await unlink(filePath);
                     await exec(`rm -rf '${outputPath}'`);
                     this.cleanUp(containerName);
                 } catch (e) {
-                    this._logger.error(`Could not clean up ${id}.`, e);
+                    this._logger.error(`Could not clean up ${requestId}.`, e);
                 }
             });
         }
@@ -123,16 +119,15 @@ export class SandboxDomainService {
         await exec(removeCommand);
     }
 
-    private getVolumeAndPath(id: string) {
-        const outputPath = join("work", id);
-
-        const volume =
+    private getVolumeAndPath(requestId: string, outputPath: string) {
+        const volumeMapping =
             process.env.NODE_ENV === "development"
                 ? `${resolve(outputPath)}:/app`
                 : `${this.VOLUME_NAME}:/app`;
 
-        const path = process.env.NODE_ENV === "development" ? "" : `/${id}`;
+        const containerWorkdirPath =
+            process.env.NODE_ENV === "development" ? "/app/" : `/app/${requestId}`;
 
-        return { volume, path };
+        return { volumeMapping, containerWorkdirPath };
     }
 }
