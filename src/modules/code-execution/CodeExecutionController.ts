@@ -16,8 +16,7 @@ export class CodeExecutionController {
     ) {
         try {
             const runService = container.get(CodeExecutionService);
-            const result = await runService.run(request, ctx.requestId);
-            return result;
+            return await runService.run(request, ctx.requestId);
         } catch (error) {
             throw new InternalServerError();
         }
