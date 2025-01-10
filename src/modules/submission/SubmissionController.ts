@@ -1,5 +1,6 @@
-import { runTests } from "@app/sandbox";
+import { RequestScopeContainer } from "@app/decorators/RequestScopeContainer";
 import { CustomContext } from "@app/types";
+import { InternalServerError } from "@app/utils/error";
 import multer from "@koa/multer";
 import {
     BadRequestError,
@@ -8,6 +9,9 @@ import {
     Post,
     UseBefore,
 } from "routing-controllers";
+import { ContainerInstance } from "typedi";
+import { SubmissionService } from "./SubmissionService";
+import { FileError } from "./errors/SubmissionError";
 
 // Singleton for now
 const upload = multer({ dest: "uploads/" });
@@ -16,27 +20,25 @@ const upload = multer({ dest: "uploads/" });
 export class SubmissionController {
     @Post("/submit")
     @UseBefore(upload.single("file"))
-    async submit(@Ctx() ctx: CustomContext) {
-        const file = ctx.request.file;
-
-        if (!file) {
-            ctx.status = 400;
-            ctx.body = { message: "No file uploaded" };
-            return;
-        }
-
-        if (ctx.file.mimetype !== "application/x-tar") {
-            throw new BadRequestError(
-                `Uploaded file type is not supported! Mimetype was: ${ctx.file.mimetype}}. Supported types are application/x-tar and application/zstd.`,
-            );
-        }
-
+    async submit(
+        @Ctx() ctx: CustomContext,
+        @RequestScopeContainer() container: ContainerInstance,
+    ) {
         try {
-            await runTests(file.path, ctx.requestId, ctx.log);
-        } catch (e) {
-            // ...
+            const submissionService = container.get(SubmissionService);
+            await submissionService.submit(
+                ctx.request.file,
+                ctx.requestId,
+                ctx.log,
+            );
+        } catch (error) {
+            if (error instanceof FileError) {
+                throw new BadRequestError(error.message);
+            }
+
+            throw new InternalServerError();
         }
 
-        return { message: `File ${file.originalname} uploaded` };
+        return { message: `ok` };
     }
 }
