@@ -32,6 +32,12 @@ export class NotFoundError extends HttpError {
     }
 }
 
+export class RequestTimeoutError extends HttpError {
+    constructor(message: string = "The request took too long to process.") {
+        super(408, message);
+    }
+}
+
 export class InternalServerError extends HttpError {
     constructor(
         message: string = "Something went wrong, please try again later.",

@@ -1,10 +1,10 @@
 import { RequestScopeContainer } from "@app/decorators/RequestScopeContainer";
 import { CustomContext } from "@app/types";
-import { InternalServerError } from "@app/utils/error";
+import { InternalServerError, RequestTimeoutError } from "@app/utils/error";
 import { Logger } from "@app/utils/log";
 import { Body, Ctx, JsonController, Post } from "routing-controllers";
 import { ContainerInstance } from "typedi";
-import { RunCodeError } from "../sandbox/errors/SandboxError";
+import { RunCodeError, TimeoutError } from "../sandbox/errors/SandboxError";
 import { CodeExecutionService } from "./CodeExecutionService";
 import { CodeExecutionRequest } from "./dto/CodeExecutionRequest";
 
@@ -26,6 +26,10 @@ export class CodeExecutionController {
 
             const _logger = container.get(Logger);
             _logger.error("[CodeExecutionController#run]:", error);
+
+            if (error instanceof TimeoutError) {
+                throw new RequestTimeoutError(error.message);
+            }
 
             throw new InternalServerError();
         }

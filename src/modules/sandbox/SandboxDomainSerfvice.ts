@@ -2,14 +2,16 @@ import { ILogger, Logger } from "@app/utils/log";
 import { exec } from "@app/utils/promisified-utils";
 import { resolve } from "path";
 import { Inject, Service } from "typedi";
-import { RunCodeError } from "./errors/SandboxError";
+import { RunCodeError, TimeoutError } from "./errors/SandboxError";
 import { ResponseModel } from "./models/ResponseModel";
 
 @Service()
 export class SandboxDomainService {
     private VOLUME_NAME = process.env.VOLUME_NAME ?? "submissions";
     private IMAGE = process.env.IMAGE ?? "maven:3-openjdk-11";
-    private DEFAULT_RUN_TIMEOUT_MS = 10000;
+
+    private DEFAULT_RUN_TIMEOUT_MS = 5000;
+    private DEFAULT_RUB_TESTS_TIMEOUT_MS = 180000;
 
     @Inject(Logger)
     private _logger: ILogger;
@@ -38,11 +40,14 @@ export class SandboxDomainService {
             this._logger.info(`Running code with '${command}'`);
             const { stdout: stdout, stderr: stderr } = await exec(command, {
                 timeout: this.DEFAULT_RUN_TIMEOUT_MS,
-                killSignal: "SIGKILL",
             });
 
-            return new ResponseModel(stderr, stdout);
+            return new ResponseModel(stdout, stderr);
         } catch (error) {
+            if (error.killed) {
+                throw new TimeoutError();
+            }
+
             if (error.stderr) {
                 throw new RunCodeError(error.stderr);
             }
@@ -76,7 +81,9 @@ export class SandboxDomainService {
             ].join(" ");
 
             this._logger.info(`Running tests with '${command}'`);
-            await exec(command);
+            await exec(command, {
+                timeout: this.DEFAULT_RUB_TESTS_TIMEOUT_MS,
+            });
 
             return { message: "Tests passed" };
         } catch (error) {

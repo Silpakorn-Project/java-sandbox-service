@@ -1,16 +1,17 @@
 import { RequestScopeContainer } from "@app/decorators/RequestScopeContainer";
 import { CustomContext } from "@app/types";
-import { BadRequestError, InternalServerError } from "@app/utils/error";
+import {
+    BadRequestError,
+    InternalServerError,
+    RequestTimeoutError,
+} from "@app/utils/error";
 import { Logger } from "@app/utils/log";
-import multer from "@koa/multer";
+import { upload } from "@app/utils/upload";
 import { Ctx, JsonController, Post, UseBefore } from "routing-controllers";
 import { ContainerInstance } from "typedi";
-import { RunTestsError } from "../sandbox/errors/SandboxError";
+import { RunTestsError, TimeoutError } from "../sandbox/errors/SandboxError";
 import { FileError } from "./errors/SubmissionError";
 import { SubmissionService } from "./SubmissionService";
-
-// Singleton for now
-const upload = multer({ dest: "uploads/" });
 
 @JsonController("/api/v1/submit")
 export class SubmissionController {
@@ -33,7 +34,11 @@ export class SubmissionController {
 
             const _logger = container.get(Logger);
             _logger.error("[SubmissionController#submit]:", error);
-            
+
+            if (error instanceof TimeoutError) {
+                throw new RequestTimeoutError(error.message);
+            }
+
             if (error instanceof FileError) {
                 throw new BadRequestError(error.message);
             }
