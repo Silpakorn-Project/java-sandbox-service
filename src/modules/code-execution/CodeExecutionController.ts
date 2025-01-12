@@ -2,7 +2,14 @@ import { RequestScopeContainer } from "@app/decorators/RequestScopeContainer";
 import { CustomContext } from "@app/types";
 import { InternalServerError, RequestTimeoutError } from "@app/utils/error";
 import { Logger } from "@app/utils/log";
-import { Body, Ctx, JsonController, Post } from "routing-controllers";
+import { upload } from "@app/utils/upload";
+import {
+    Body,
+    Ctx,
+    JsonController,
+    Post,
+    UseBefore,
+} from "routing-controllers";
 import { ContainerInstance } from "typedi";
 import { RunCodeError, TimeoutError } from "../sandbox/errors/SandboxError";
 import { CodeExecutionService } from "./CodeExecutionService";
@@ -19,6 +26,34 @@ export class CodeExecutionController {
         try {
             const runService = container.get(CodeExecutionService);
             return await runService.run(request, ctx.requestId);
+        } catch (error) {
+            if (error instanceof RunCodeError) {
+                return { stderr: error.message };
+            }
+
+            const _logger = container.get(Logger);
+            _logger.error("[CodeExecutionController#run]:", error);
+
+            if (error instanceof TimeoutError) {
+                throw new RequestTimeoutError(error.message);
+            }
+
+            throw new InternalServerError();
+        }
+    }
+
+    @Post("/file")
+    @UseBefore(upload.single("file"))
+    public async runWithFile(
+        @Ctx() ctx: CustomContext,
+        @RequestScopeContainer() container: ContainerInstance,
+    ) {
+        try {
+            const runService = container.get(CodeExecutionService);
+            return await runService.runWithFile(
+                ctx.request.file,
+                ctx.requestId,
+            );
         } catch (error) {
             if (error instanceof RunCodeError) {
                 return { stderr: error.message };

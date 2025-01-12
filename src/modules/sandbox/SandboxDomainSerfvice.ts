@@ -19,6 +19,7 @@ export class SandboxDomainService {
     public async runCode(
         containerName: string,
         outputPath: string,
+        fileName: String,
         requestId: string,
     ): Promise<ResponseModel> {
         try {
@@ -34,7 +35,7 @@ export class SandboxDomainService {
                 `--volume ${volumeMapping}`,
                 `${this.IMAGE}`,
                 `sh -c`,
-                `"javac Main.java && java Main"`,
+                `"javac ${fileName} && java ${fileName.replace(".java", "")}"`,
             ].join(" ");
 
             this._logger.info(`Running code with '${command}'`);
