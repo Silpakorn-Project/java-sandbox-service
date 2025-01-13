@@ -1,10 +1,17 @@
 import { RequestScopeContainer } from "@app/decorators/RequestScopeContainer";
 import { CustomContext } from "@app/types";
-import { InternalServerError, RequestTimeoutError } from "@app/utils/error";
+import {
+    InternalServerError,
+    LoopDetectedError,
+    RequestTimeoutError,
+} from "@app/utils/error";
 import { Logger } from "@app/utils/log";
 import { Body, Ctx, JsonController, Post } from "routing-controllers";
 import { ContainerInstance } from "typedi";
-import { TimeoutError } from "../sandbox/errors/SandboxError";
+import {
+    OutputLitmitExceededError,
+    TimeoutError,
+} from "../sandbox/errors/SandboxError";
 import { SubmissionRequest } from "./dto/SubmissionRequest";
 import { SubmissionService } from "./SubmissionService";
 
@@ -26,6 +33,10 @@ export class SubmissionController {
         } catch (error) {
             const _logger = container.get(Logger);
             _logger.error("[SubmissionController#submit]:", error);
+
+            if (error instanceof OutputLitmitExceededError) {
+                throw new LoopDetectedError(error.message);
+            }
 
             if (error instanceof TimeoutError) {
                 throw new RequestTimeoutError(error.message);

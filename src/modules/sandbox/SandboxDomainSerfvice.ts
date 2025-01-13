@@ -4,7 +4,7 @@ import { resolve } from "path";
 import { Inject, Service } from "typedi";
 import { TestCase } from "../submission/dto/SubmissionRequest";
 import { SubmissionResponseModel } from "../submission/models/SubmissionModel";
-import { TimeoutError } from "./errors/SandboxError";
+import { OutputLitmitExceededError, TimeoutError } from "./errors/SandboxError";
 import {
     RunCodeResponseModel,
     RunTestResponseModel,
@@ -59,11 +59,23 @@ export class SandboxDomainService {
                 return new RunCodeResponseModel(error.stdout, error.stderr);
             }
 
+            if (error.code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER") {
+                throw new OutputLitmitExceededError();
+            }
+
             if (error.killed) {
                 throw new TimeoutError();
             }
 
             throw error;
+        } finally {
+            setImmediate(async () => {
+                try {
+                    await exec(`docker rm -f ${containerName}`);
+                } catch (e) {
+                    this._logger.error(`Could not clean up ${requestId}.`, e);
+                }
+            });
         }
     }
 

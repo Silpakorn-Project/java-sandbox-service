@@ -17,3 +17,9 @@ export class TimeoutError extends ApplicationError {
         super(message);
     }
 }
+
+export class OutputLitmitExceededError extends ApplicationError {
+    constructor(message: string = "Output size exceeded the allowed size limit.") {
+        super(message);
+    }
+}
