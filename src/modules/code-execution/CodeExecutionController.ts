@@ -15,7 +15,7 @@ import {
     UseBefore,
 } from "routing-controllers";
 import { ContainerInstance } from "typedi";
-import { RunCodeError, TimeoutError } from "../sandbox/errors/SandboxError";
+import { TimeoutError } from "../sandbox/errors/SandboxError";
 import { CodeExecutionService } from "./CodeExecutionService";
 import { CodeExecutionRequest } from "./dto/CodeExecutionRequest";
 import { FileError } from "./errors/CodeExecutionError";
@@ -32,10 +32,6 @@ export class CodeExecutionController {
             const runService = container.get(CodeExecutionService);
             return await runService.run(request, ctx.requestId);
         } catch (error) {
-            if (error instanceof RunCodeError) {
-                return { stderr: error.message };
-            }
-
             const _logger = container.get(Logger);
             _logger.error("[CodeExecutionController#run]:", error);
 
@@ -60,10 +56,6 @@ export class CodeExecutionController {
                 ctx.requestId,
             );
         } catch (error) {
-            if (error instanceof RunCodeError) {
-                return { stderr: error.message };
-            }
-
             const _logger = container.get(Logger);
             _logger.error("[CodeExecutionController#run]:", error);
 

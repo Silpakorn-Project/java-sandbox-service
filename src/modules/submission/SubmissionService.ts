@@ -1,11 +1,10 @@
-import { extract } from "@app/utils/file_extractor";
+import { extractClassName } from "@app/utils/class_name_extractor";
 import { ILogger, Logger } from "@app/utils/log";
-import { exec, unlink } from "@app/utils/promisified-utils";
-import multer from "@koa/multer";
+import { fileSystem } from "@app/utils/promisified-utils";
 import { join } from "path";
 import { Inject, Service } from "typedi";
 import { SandboxDomainService } from "../sandbox/SandboxDomainSerfvice";
-import { FileError } from "./errors/SubmissionError";
+import { TestCase } from "./dto/SubmissionRequest";
 
 @Service()
 export class SubmissionService {
@@ -15,36 +14,33 @@ export class SubmissionService {
     @Inject()
     private _sandboxDomainService: SandboxDomainService;
 
-    public async submit(file: multer.File, requestId: string) {
-        if (!file) {
-            throw new FileError("No file was uploaded");
-        }
-
-        if (file.mimetype !== "application/x-tar") {
-            throw new FileError(
-                `Uploaded file type is not supported! Mimetype was: ${file.mimetype}}. Supported types are application/x-tar`,
-            );
-        }
-
+    public async submit(
+        sourceCode: string,
+        testCases: TestCase[],
+        requestId: string,
+    ) {
         const containerName = `submission-${requestId}`;
         const outputPath = join("work", requestId);
-        await extract(file.path, outputPath);
+        const fileName = extractClassName(sourceCode) + ".java";
+        const sourceCodeFilePath = join(outputPath, fileName);
 
         try {
-            await exec(`chmod -R 777 ${outputPath}`);
+            await fileSystem.mkdir(outputPath);
+            await fileSystem.writeFile(sourceCodeFilePath, sourceCode);
+            await fileSystem.chmod(outputPath, 777);
 
-            return await this._sandboxDomainService.runTests(
+            return await this._sandboxDomainService.runAllTests(
                 containerName,
                 outputPath,
                 requestId,
+                testCases,
             );
-        } catch (e) {
-            throw e;
+        } catch (error) {
+            throw error;
         } finally {
             setImmediate(async () => {
                 try {
-                    await unlink(file.path);
-                    await exec(`rm -rf '${outputPath}'`);
+                    await fileSystem.rm(outputPath, { recursive: true });
                 } catch (e) {
                     this._logger.error(`Could not clean up ${requestId}.`, e);
                 }

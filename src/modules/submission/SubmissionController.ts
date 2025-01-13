@@ -1,46 +1,34 @@
 import { RequestScopeContainer } from "@app/decorators/RequestScopeContainer";
 import { CustomContext } from "@app/types";
-import {
-    BadRequestError,
-    InternalServerError,
-    RequestTimeoutError,
-} from "@app/utils/error";
+import { InternalServerError, RequestTimeoutError } from "@app/utils/error";
 import { Logger } from "@app/utils/log";
-import { upload } from "@app/utils/upload";
-import { Ctx, JsonController, Post, UseBefore } from "routing-controllers";
+import { Body, Ctx, JsonController, Post } from "routing-controllers";
 import { ContainerInstance } from "typedi";
-import { RunTestsError, TimeoutError } from "../sandbox/errors/SandboxError";
-import { FileError } from "./errors/SubmissionError";
+import { TimeoutError } from "../sandbox/errors/SandboxError";
+import { SubmissionRequest } from "./dto/SubmissionRequest";
 import { SubmissionService } from "./SubmissionService";
 
 @JsonController("/api/v1/submit")
 export class SubmissionController {
     @Post("/")
-    @UseBefore(upload.single("file"))
     public async submit(
         @Ctx() ctx: CustomContext,
+        @Body() request: SubmissionRequest,
         @RequestScopeContainer() container: ContainerInstance,
     ) {
         try {
             const submissionService = container.get(SubmissionService);
             return await submissionService.submit(
-                ctx.request.file,
+                request.source_Code,
+                request.test_cases,
                 ctx.requestId,
             );
         } catch (error) {
-            if (error instanceof RunTestsError) {
-                return { stderr: error.message };
-            }
-
             const _logger = container.get(Logger);
             _logger.error("[SubmissionController#submit]:", error);
 
             if (error instanceof TimeoutError) {
                 throw new RequestTimeoutError(error.message);
-            }
-
-            if (error instanceof FileError) {
-                throw new BadRequestError(error.message);
             }
 
             throw new InternalServerError();
