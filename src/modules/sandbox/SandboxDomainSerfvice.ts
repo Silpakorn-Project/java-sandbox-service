@@ -15,8 +15,7 @@ export class SandboxDomainService {
     private VOLUME_NAME = process.env.VOLUME_NAME ?? "submissions";
     private IMAGE = process.env.IMAGE ?? "openjdk:11";
 
-    private DEFAULT_RUN_TIMEOUT_MS = 5000;
-    private DEFAULT_RUB_TESTS_TIMEOUT_MS = 180000;
+    private DEFAULT_RUN_TIMEOUT_MS = 10000;
 
     @Inject(Logger)
     private _logger: ILogger;
@@ -115,7 +114,7 @@ export class SandboxDomainService {
             ).length;
 
             const testCaseWrong = testResults.filter(
-                (testResult) => testResult.passed === true,
+                (testResult) => testResult.passed === false,
             ).length;
 
             const submissionResponse: SubmissionResponseModel = {
