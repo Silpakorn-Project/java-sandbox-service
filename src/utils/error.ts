@@ -48,6 +48,6 @@ export class InternalServerError extends HttpError {
 
 export class LoopDetectedError extends HttpError {
     constructor(message: string = "Loop detected, Resource Limit Reached") {
-        super(500, message);
+        super(508, message);
     }
 }

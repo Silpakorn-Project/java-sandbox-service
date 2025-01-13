@@ -3,6 +3,7 @@ import { CustomContext } from "@app/types";
 import {
     BadRequestError,
     InternalServerError,
+    LoopDetectedError,
     RequestTimeoutError,
 } from "@app/utils/error";
 import { Logger } from "@app/utils/log";
@@ -15,7 +16,10 @@ import {
     UseBefore,
 } from "routing-controllers";
 import { ContainerInstance } from "typedi";
-import { TimeoutError } from "../sandbox/errors/SandboxError";
+import {
+    OutputLitmitExceededError,
+    TimeoutError,
+} from "../sandbox/errors/SandboxError";
 import { CodeExecutionService } from "./CodeExecutionService";
 import { CodeExecutionRequest } from "./dto/CodeExecutionRequest";
 import { FileError } from "./errors/CodeExecutionError";
@@ -34,6 +38,10 @@ export class CodeExecutionController {
         } catch (error) {
             const _logger = container.get(Logger);
             _logger.error("[CodeExecutionController#run]:", error);
+
+            if (error instanceof OutputLitmitExceededError) {
+                throw new LoopDetectedError(error.message);
+            }
 
             if (error instanceof TimeoutError) {
                 throw new RequestTimeoutError(error.message);
@@ -61,6 +69,10 @@ export class CodeExecutionController {
 
             if (error instanceof FileError) {
                 throw new BadRequestError(error.message);
+            }
+
+            if (error instanceof OutputLitmitExceededError) {
+                throw new LoopDetectedError(error.message);
             }
 
             if (error instanceof TimeoutError) {
