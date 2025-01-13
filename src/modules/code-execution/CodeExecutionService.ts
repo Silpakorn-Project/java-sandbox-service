@@ -1,3 +1,4 @@
+import { extractClassName } from "@app/utils/class_name_extractor";
 import { ILogger, Logger } from "@app/utils/log";
 import { fileSystem } from "@app/utils/promisified-utils";
 import multer from "@koa/multer";
@@ -22,18 +23,17 @@ export class CodeExecutionService {
     ): Promise<RunCodeResponseModel> {
         const containerName = `submission-${requestId}`;
         const outputPath = join("work", requestId);
-        const fileName = this.extractClassName(request.sourceCode) + ".java";
+        const fileName = extractClassName(request.source_code) + ".java";
         const sourceCodeFilePath = join(outputPath, fileName);
 
         try {
             await fileSystem.mkdir(outputPath);
-            await fileSystem.writeFile(sourceCodeFilePath, request.sourceCode);
+            await fileSystem.writeFile(sourceCodeFilePath, request.source_code);
             await fileSystem.chmod(outputPath, 777);
 
             return await this._sandboxDomainService.runCode(
                 containerName,
                 outputPath,
-                fileName,
                 requestId,
             );
         } catch (error) {
@@ -41,7 +41,7 @@ export class CodeExecutionService {
         } finally {
             setImmediate(async () => {
                 try {
-                    await fileSystem.rm(outputPath, { force: true });
+                    await fileSystem.rm(outputPath, { recursive: true });
                 } catch (e) {
                     this._logger.error(`Could not clean up ${requestId}.`, e);
                 }
@@ -84,16 +84,5 @@ export class CodeExecutionService {
                 }
             });
         }
-    }
-
-    /**
-     * Extracts the class name from Java source code.
-     * @param sourceCode - The Java source code as a string.
-     * @returns The class name, or null if no class name could be found.
-     */
-    private extractClassName(sourceCode: string): string | null {
-        const classNameRegex = /public\s+class\s+([A-Za-z_][A-Za-z0-9_]*)/;
-        const match = sourceCode.match(classNameRegex);
-        return match ? match[1] : null;
     }
 }
