@@ -1,6 +1,10 @@
 import { RequestScopeContainer } from "@app/decorators/RequestScopeContainer";
 import { CustomContext } from "@app/types";
-import { InternalServerError, RequestTimeoutError } from "@app/utils/error";
+import {
+    BadRequestError,
+    InternalServerError,
+    RequestTimeoutError,
+} from "@app/utils/error";
 import { Logger } from "@app/utils/log";
 import { upload } from "@app/utils/upload";
 import {
@@ -14,6 +18,7 @@ import { ContainerInstance } from "typedi";
 import { RunCodeError, TimeoutError } from "../sandbox/errors/SandboxError";
 import { CodeExecutionService } from "./CodeExecutionService";
 import { CodeExecutionRequest } from "./dto/CodeExecutionRequest";
+import { FileError } from "./errors/CodeExecutionError";
 
 @JsonController("/api/v1/run")
 export class CodeExecutionController {
@@ -61,6 +66,10 @@ export class CodeExecutionController {
 
             const _logger = container.get(Logger);
             _logger.error("[CodeExecutionController#run]:", error);
+
+            if (error instanceof FileError) {
+                throw new BadRequestError(error.message);
+            }
 
             if (error instanceof TimeoutError) {
                 throw new RequestTimeoutError(error.message);

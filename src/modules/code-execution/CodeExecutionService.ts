@@ -3,9 +3,10 @@ import { fileSystem } from "@app/utils/promisified-utils";
 import multer from "@koa/multer";
 import { join } from "path";
 import { Inject, Service } from "typedi";
-import { ResponseModel } from "../sandbox/models/ResponseModel";
+import { RunCodeResponseModel } from "../sandbox/models/ResponseModel";
 import { SandboxDomainService } from "../sandbox/SandboxDomainSerfvice";
 import { CodeExecutionRequest } from "./dto/CodeExecutionRequest";
+import { FileError } from "./errors/CodeExecutionError";
 
 @Service()
 export class CodeExecutionService {
@@ -18,7 +19,7 @@ export class CodeExecutionService {
     public async run(
         request: CodeExecutionRequest,
         requestId: string,
-    ): Promise<ResponseModel> {
+    ): Promise<RunCodeResponseModel> {
         const containerName = `submission-${requestId}`;
         const outputPath = join("work", requestId);
         const fileName = this.extractClassName(request.sourceCode) + ".java";
@@ -51,7 +52,11 @@ export class CodeExecutionService {
     public async runWithFile(
         file: multer.File,
         requestId: string,
-    ): Promise<ResponseModel> {
+    ): Promise<RunCodeResponseModel> {
+        if (!file.originalname.endsWith(".java")) {
+            throw new FileError("Only .java files are supported.");
+        }
+
         const containerName = `submission-${requestId}`;
         const outputPath = join("work", requestId);
         const sourceCodeFilePath = join(outputPath, file.originalname);
@@ -73,7 +78,7 @@ export class CodeExecutionService {
             setImmediate(async () => {
                 try {
                     await fileSystem.unlink(file.path);
-                    await fileSystem.rm(outputPath, { force: true });
+                    await fileSystem.rm(outputPath, { recursive: true });
                 } catch (e) {
                     this._logger.error(`Could not clean up ${requestId}.`, e);
                 }

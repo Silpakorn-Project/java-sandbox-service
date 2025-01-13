@@ -1,9 +1,9 @@
-export class ResponseModel {
-    public stderr: string;
+export class RunCodeResponseModel {
     public stdout: string;
+    public stderr: string;
 
-    constructor(stderr: string, stdout: string) {
-        this.stderr = stderr;
+    constructor(stdout: string, stderr: string) {
         this.stdout = stdout;
+        this.stderr = stderr;
     }
 }
