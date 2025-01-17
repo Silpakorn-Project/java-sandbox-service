@@ -1,10 +1,13 @@
 export class RunCodeResponseModel {
     public stdout: string;
     public stderr: string;
+    public output: string;
 
     constructor(stdout: string, stderr: string) {
         this.stdout = stdout;
         this.stderr = stderr;
+        
+        this.output = stdout || stderr;
     }
 }
 

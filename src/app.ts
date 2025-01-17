@@ -14,6 +14,7 @@ import { HealthCheckController } from "./modules/healthcheck/HealthCheckControll
 import { SubmissionController } from "./modules/submission/SubmissionController";
 
 const app = createKoaServer({
+    cors: true,
     defaultErrorHandler: false,
     controllers: [SubmissionController, HealthCheckController, CodeExecutionController],
     middlewares: [
