@@ -5,6 +5,6 @@
 Requirements: Node and docker
 
 ```bash
-npm ci
-npm run dev
+yarn
+yarn dev
 ```
