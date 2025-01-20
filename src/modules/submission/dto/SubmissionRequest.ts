@@ -14,7 +14,7 @@ export class TestCase {
 export class SubmissionRequest {
     @IsString()
     @IsNotEmpty()
-    source_Code: string;
+    source_code: string;
 
     @ValidateNested()
     @Type(() => TestCase)

@@ -26,7 +26,7 @@ export class SubmissionController {
         try {
             const submissionService = container.get(SubmissionService);
             return await submissionService.submit(
-                request.source_Code,
+                request.source_code,
                 request.test_cases,
                 ctx.requestId,
             );
