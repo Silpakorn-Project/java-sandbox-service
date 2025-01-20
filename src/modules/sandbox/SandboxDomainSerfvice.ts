@@ -36,7 +36,7 @@ export class SandboxDomainService {
                 `find ${outputPath} -name "*.java" -printf '%f'`,
             );
 
-            const inputCommand = input ? `echo "${input}" |` : "";
+            const inputCommand = input ? `<< EOF\n${input}\nEOF` : "";
 
             const command = [
                 `docker run --rm`,
@@ -45,7 +45,7 @@ export class SandboxDomainService {
                 `--volume ${volumeMapping}`,
                 `${this.IMAGE}`,
                 `bash -c`,
-                `"javac ${fileName} && ${inputCommand} java ${fileName.replace(".java", "")}"`,
+                `"javac ${fileName} && java ${fileName.replace(".java", "")} ${inputCommand}"`,
             ].join(" ");
 
             this._logger.info(`Running code with '${command}'`);
