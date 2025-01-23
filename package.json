@@ -1,5 +1,5 @@
 {
-    "name": "java-sandbox",
+    "name": "java-sandbox-service",
     "version": "1.0.0",
     "description": "",
     "main": "index.js",

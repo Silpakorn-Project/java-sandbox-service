@@ -1,4 +1,4 @@
-# java-sandbox
+# java-sandbox-service
 
 ## Development environment
 
