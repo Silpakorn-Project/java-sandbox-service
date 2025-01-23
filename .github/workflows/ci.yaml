@@ -35,8 +35,8 @@ jobs:
         sleep 10
 
     - name: Test Call API
-        run: |
-          curl -X GET http://localhost:3000/java-sandbox-service/ || exit 1
+      run: |
+        curl -X GET http://localhost:3000/java-sandbox-service/ || exit 1
 
     - name: Log in to Docker Hub
       uses: docker/login-action@v1
