@@ -1,6 +1,6 @@
 import { Get, JsonController } from "routing-controllers";
 
-@JsonController("/sandbox")
+@JsonController("/")
 export class HealthCheckController {
     @Get("/")
     async status() {
