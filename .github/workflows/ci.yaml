@@ -31,8 +31,8 @@ jobs:
         java-sandbox-service:latest
 
     - name: Wait container start finish
-        run: |
-          sleep 10
+      run: |
+        sleep 10
 
     - name: Test Call API
         run: |
