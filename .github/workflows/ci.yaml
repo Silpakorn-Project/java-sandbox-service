@@ -48,3 +48,4 @@ jobs:
       run: |
         docker tag java-sandbox-service:latest ${{ secrets.DOCKER_USERNAME }}/java-sandbox-service:latest
         docker push ${{ secrets.DOCKER_USERNAME }}/java-sandbox-service:latest
+
