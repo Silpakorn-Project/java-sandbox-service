@@ -11,16 +11,16 @@ RUN apt-get update && apt-get install -y \
     apt-get update && \
     apt-get install -y docker-ce-cli
 
-COPY package.json package-lock.json /app/
+COPY package.json yarn.lock /app/
 
 WORKDIR /app
 
-RUN npm ci
+RUN yarn
 
 COPY . /app
 
-RUN npm run build
+RUN yarn build
 
 EXPOSE 3003
 
-CMD [ "npm", "run", "start" ]
+CMD [ "yarn", "start" ]
