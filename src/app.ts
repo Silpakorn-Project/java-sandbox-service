@@ -15,6 +15,7 @@ import { SubmissionController } from "./modules/submission/SubmissionController"
 
 const app = createKoaServer({
     cors: true,
+    routePrefix: "/java-sandbox-service",
     defaultErrorHandler: false,
     controllers: [SubmissionController, HealthCheckController, CodeExecutionController],
     middlewares: [
@@ -34,6 +35,6 @@ app.listen(port, () => {
     const modeMessage =
         process.env.NODE_ENV === "development" ? "Development" : "Production";
     console.log(
-        `Server is running on port http://localhost:${port}/ (${modeMessage})`,
+        `Server is running on port http://localhost:${port}/java-sandbox-service/sandbox (${modeMessage})`,
     );
 });
