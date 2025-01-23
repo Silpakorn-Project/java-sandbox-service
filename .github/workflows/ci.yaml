@@ -3,10 +3,10 @@ name: Build Docker Image to Docker Hub
 on:
   push:
     branches:
-      - build 
+      - feat/pipeline
   pull_request:
     branches:
-      - build 
+      - feat/pipeline
 
 jobs:
   build:
