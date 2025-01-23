@@ -15,7 +15,7 @@ import {
 import { SubmissionRequest } from "./dto/SubmissionRequest";
 import { SubmissionService } from "./SubmissionService";
 
-@JsonController("/api/v1/submit")
+@JsonController("/sandbox/submit")
 export class SubmissionController {
     @Post("/")
     public async submit(

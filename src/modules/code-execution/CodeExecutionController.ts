@@ -24,7 +24,7 @@ import { CodeExecutionService } from "./CodeExecutionService";
 import { CodeExecutionRequest } from "./dto/CodeExecutionRequest";
 import { FileError } from "./errors/CodeExecutionError";
 
-@JsonController("/api/v1/run")
+@JsonController("/sandbox/run")
 export class CodeExecutionController {
     @Post("/")
     public async run(

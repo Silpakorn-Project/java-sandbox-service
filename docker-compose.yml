@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   sandbox:
-    container_name: sandbox
+    container_name: java-sandbox-service
     build:
       context: .
     ports:
@@ -13,4 +13,4 @@ services:
 
 volumes:
   submissions:
-    name: submissions
+    name: java-sandbox-submissions
