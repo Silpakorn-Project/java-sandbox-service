@@ -4,6 +4,7 @@ export class RunCodeResponseModel {
     public output: string;
 
     constructor(stdout: string, stderr: string) {
+        stdout = stdout.replace(/\n$/, '');
         this.stdout = stdout;
         this.stderr = stderr;
         
