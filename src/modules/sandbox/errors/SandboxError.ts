@@ -23,3 +23,19 @@ export class OutputLitmitExceededError extends ApplicationError {
         super(message);
     }
 }
+
+export class CompilationError extends Error {
+    public stderr: string;
+    public stdout?: string;
+
+    constructor(stderr: string, stdout?: string) {
+        super("Compilation failed.");
+        this.name = "CompilationError";
+        this.stderr = stderr;
+        this.stdout = stdout;
+
+        if (Error.captureStackTrace) {
+            Error.captureStackTrace(this, CompilationError);
+        }
+    }
+}

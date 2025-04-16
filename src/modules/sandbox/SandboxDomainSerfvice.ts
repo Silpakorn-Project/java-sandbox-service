@@ -4,7 +4,11 @@ import { resolve } from "path";
 import { Inject, Service } from "typedi";
 import { TestCase } from "../submission/dto/SubmissionRequest";
 import { SubmissionResponseModel } from "../submission/models/SubmissionModel";
-import { OutputLitmitExceededError, TimeoutError } from "./errors/SandboxError";
+import {
+    CompilationError,
+    OutputLitmitExceededError,
+    TimeoutError,
+} from "./errors/SandboxError";
 import {
     RunCodeResponseModel,
     RunTestResponseModel,
@@ -14,42 +18,89 @@ import {
 export class SandboxDomainService {
     private VOLUME_NAME = process.env.VOLUME_NAME ?? "submissions";
     private IMAGE = process.env.IMAGE ?? "openjdk:11";
-
     private DEFAULT_RUN_TIMEOUT_MS = 10000;
 
     @Inject(Logger)
     private _logger: ILogger;
 
-    public async runCode(
+    private getVolumeAndPath(requestId: string, outputPath: string) {
+        const volumeMapping =
+            process.env.NODE_ENV === "development"
+                ? `${resolve(outputPath)}:/app`
+                : `${this.VOLUME_NAME}:/app`;
+
+        const containerWorkdir =
+            process.env.NODE_ENV === "development"
+                ? "/app/"
+                : `/app/${requestId}`;
+
+        return { volumeMapping, containerWorkdir };
+    }
+
+    private async createContainer(
         containerName: string,
         outputPath: string,
         requestId: string,
+    ) {
+        const { volumeMapping, containerWorkdir } = this.getVolumeAndPath(
+            requestId,
+            outputPath,
+        );
+
+        const command = [
+            `docker run -dit`,
+            `--name ${containerName}`,
+            `--workdir ${containerWorkdir}`,
+            `--volume ${volumeMapping}`,
+            `${this.IMAGE}`,
+            `bash`,
+        ].join(" ");
+
+        this._logger.info(`Creating container: ${command}`);
+        await exec(command);
+    }
+
+    private async cleanupContainer(containerName: string) {
+        try {
+            await exec(`docker rm -f ${containerName}`);
+        } catch (e) {
+            this._logger.error(
+                `Failed to clean up container: ${containerName}`,
+                e,
+            );
+        }
+    }
+
+    private async compileCode(containerName: string, fileName: string) {
+        try {
+            const command = `docker exec ${containerName} javac ${fileName}`;
+            this._logger.info(`Compiling code: ${command}`);
+            await exec(command);
+        } catch (error) {
+            if (error.stderr) {
+                throw new CompilationError(error.stderr, error.stdout);
+            }
+        }
+    }
+
+    private async runCompiledCode(
+        containerName: string,
+        fileName: string,
         input?: string,
     ): Promise<RunCodeResponseModel> {
         try {
-            const { volumeMapping, containerWorkdir } = this.getVolumeAndPath(
-                requestId,
-                outputPath,
-            );
-
-            const { stdout: fileName } = await exec(
-                `find ${outputPath} -name "*.java" -printf '%f'`,
-            );
-
-            const inputCommand = input ? `<< EOF\n${input}\nEOF` : "";
+            const className = fileName.replace(".java", "");
+            const inputCommand = input ? `<<EOF\n${input}\nEOF` : "";
 
             const command = [
-                `docker run --rm`,
-                `--name ${containerName}`,
-                `--workdir ${containerWorkdir}`,
-                `--volume ${volumeMapping}`,
-                `${this.IMAGE}`,
+                `docker exec`,
+                `${containerName}`,
                 `bash -c`,
-                `"javac ${fileName} && java ${fileName.replace(".java", "")} ${inputCommand}"`,
+                `"java ${className} ${inputCommand}"`,
             ].join(" ");
 
-            this._logger.info(`Running code with '${command}'`);
-            const { stdout: stdout, stderr: stderr } = await exec(command, {
+            this._logger.info(`Running code in container: ${command}`);
+            const { stdout, stderr } = await exec(command, {
                 timeout: this.DEFAULT_RUN_TIMEOUT_MS,
             });
 
@@ -68,37 +119,7 @@ export class SandboxDomainService {
             }
 
             throw error;
-        } finally {
-            setImmediate(async () => {
-                try {
-                    await exec(`docker rm -f ${containerName}`);
-                } catch (e) {
-                    this._logger.error(`Could not clean up ${requestId}.`, e);
-                }
-            });
         }
-    }
-
-    public async runTest(
-        containerName: string,
-        outputPath: string,
-        requestId: string,
-        testCase: TestCase,
-    ): Promise<RunTestResponseModel> {
-        const { stdout: stdout, stderr: stderr } = await this.runCode(
-            containerName,
-            outputPath,
-            requestId,
-            testCase.input,
-        );
-
-        return new RunTestResponseModel(
-            stdout === testCase.expected_output,
-            testCase.input,
-            testCase.expected_output,
-            stdout,
-            stderr || undefined,
-        );
     }
 
     public async runAllTests(
@@ -107,53 +128,53 @@ export class SandboxDomainService {
         requestId: string,
         testCases: TestCase[],
     ): Promise<SubmissionResponseModel> {
+        await this.createContainer(containerName, outputPath, requestId);
+        const results : RunTestResponseModel[] = [];
+
         try {
-            const testResults = [];
+            const { stdout: fileName } = await exec(
+                `find ${outputPath} -name "*.java" -printf '%f'`,
+            );
+
+            const trimmedFileName = fileName.trim();
+            await this.compileCode(containerName, trimmedFileName);
 
             for (const testCase of testCases) {
-                const testResult = await this.runTest(
+                const { stdout, stderr } = await this.runCompiledCode(
                     containerName,
-                    outputPath,
-                    requestId,
-                    testCase,
+                    trimmedFileName,
+                    testCase.input,
                 );
 
-                testResults.push(testResult);
+                results.push(
+                    new RunTestResponseModel(
+                        stdout === testCase.expected_output,
+                        testCase.input,
+                        testCase.expected_output,
+                        stdout,
+                        stderr || undefined,
+                    ),
+                );
             }
 
-            const testCasePassed = testResults.filter(
-                (testResult) => testResult.passed === true,
-            ).length;
-
-            const testCaseWrong = testResults.filter(
-                (testResult) => testResult.passed === false,
-            ).length;
-
-            const submissionResponse: SubmissionResponseModel = {
-                passed: testCasePassed === testCases.length,
-                testcase_total: testCases.length,
-                testcase_passed: testCasePassed,
-                testcase_wrong: testCaseWrong,
-                test_cases: testResults,
-            };
-
-            return submissionResponse;
+            return SubmissionResponseModel.makeFromTestcasesAndTestResults(
+                testCases,
+                results,
+            );
         } catch (error) {
+            if (error instanceof CompilationError) {
+                results.push(
+                    new RunTestResponseModel(false, "", "", "", error.stderr),
+                );
+                return SubmissionResponseModel.makeFromTestcasesAndTestResults(
+                    testCases,
+                    results,
+                );
+            }
+
             throw error;
+        } finally {
+            await this.cleanupContainer(containerName);
         }
-    }
-
-    private getVolumeAndPath(requestId: string, outputPath: string) {
-        const volumeMapping =
-            process.env.NODE_ENV === "development"
-                ? `${resolve(outputPath)}:/app`
-                : `${this.VOLUME_NAME}:/app`;
-
-        const containerWorkdir =
-            process.env.NODE_ENV === "development"
-                ? "/app/"
-                : `/app/${requestId}`;
-
-        return { volumeMapping, containerWorkdir };
     }
 }
