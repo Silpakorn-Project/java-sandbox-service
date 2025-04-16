@@ -9,7 +9,6 @@ import {
     RequestIdGeneratorMiddleware,
     RequestScopeContainerLifeCycleMiddleware,
 } from "./middleware";
-import { CodeExecutionController } from "./modules/code-execution/CodeExecutionController";
 import { HealthCheckController } from "./modules/healthcheck/HealthCheckController";
 import { SubmissionController } from "./modules/submission/SubmissionController";
 
@@ -17,7 +16,7 @@ const app = createKoaServer({
     cors: true,
     routePrefix: "/java-sandbox-service",
     defaultErrorHandler: false,
-    controllers: [SubmissionController, HealthCheckController, CodeExecutionController],
+    controllers: [SubmissionController, HealthCheckController],
     middlewares: [
         RequestIdGeneratorMiddleware,
         ErrorHandlerMiddleware,

@@ -15,7 +15,6 @@
     "license": "ISC",
     "devDependencies": {
         "@types/koa": "^2.15.0",
-        "@types/koa__multer": "^2.0.7",
         "@types/koa-bodyparser": "^4.3.12",
         "@types/koa-router": "^7.4.8",
         "@types/tar-fs": "^2.0.4",
